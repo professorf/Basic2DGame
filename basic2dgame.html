@@ -1,0 +1,337 @@
+<!doctype html>
+<html>
+<head>
+    <title>Basic 2D Game</title>
+    <script>
+        // 1. made sure I could call a function and access a textbox, then 2. got the init & game loop working
+        var idTimer, iTick;
+        var tapx = -1, tapy = -1, dtapx = -1, dtapy = -1, lastkey="";
+
+        function init() {
+            iTick = 0;
+            idTimer = 0;
+            cvGame.Width = 512;
+            cvGame.Height = 512;
+        }
+
+        function draw_ship(x, y) { // step 7--made a draw_ship function, comment out in-line code to test
+                                   // try multiple ships, remove commented out code
+            dc = cvGame.getContext("2d");
+
+            dc.save();
+
+            dc.translate(x, y); // Step 6, figure out how transforms work--backwards! 1:23PM 7/12/13
+            dc.scale(5, 5);
+            dc.rotate(Math.PI / 180 * iTick);
+            dc.translate(-5, -5);
+
+            dc.beginPath();
+            dc.moveTo(0, 0);
+            dc.lineTo(10, 5);
+            dc.lineTo(0, 10);
+            dc.lineTo(5, 5);
+            dc.lineTo(0, 0);
+            dc.closePath();
+
+            dc.strokeStyle = "#ff0000";
+            dc.stroke();
+            dc.fillStyle = "#0000ff";
+            dc.fill();
+
+            dc.restore();
+        }
+
+        function update() { // 14. fleshed out update
+            for (i = 0; i < thing_array.length; i++) {
+                //console.log("printing:" + thing_array[i].x + "," + thing_array[i].y);
+                //draw_ship(thing_array[i].x, thing_array[i].y);
+                thing_array[i].update();
+            }
+        }
+
+        function draw_testrect() {
+            dc = cvGame.getContext("2d");
+            dc.save();
+            dc.translate(256, 256);
+            //dc.translate(-(iTick2 / 2), -(iTick / 2));
+            dc.rotate(Math.PI / 180 * 45);
+            dc.translate(-(iTick / 2), -(iTick / 2));
+            dc.fillStyle = "#ff00ff";
+            dc.fillRect(0, 0, iTick, iTick); // 3. did the filling rect, to make sure I could draw
+            dc.restore();
+        }
+
+        function draw() {
+            dc = cvGame.getContext("2d");
+            dc.clearRect(0, 0, cvGame.width, cvGame.height);
+            //draw_testrect(); // step 17. functionalize test rectangle, then removed step 19.
+
+            //draw_ship(256, 256); // step 18. remove test draw_ships
+            //draw_ship(100, 100);
+            //draw_ship(300, 300);
+
+
+            for (i = 0; i < thing_array.length; i++) {
+                //console.log("printing:" + thing_array[i].x + "," + thing_array[i].y);
+                //draw_ship(thing_array[i].x, thing_array[i].y);
+                thing_array[i].draw();
+            }
+            
+            dc.beginPath();
+            dc.moveTo(0,0);
+            dc.lineTo(cvGame.Width,cvGame.Height);
+            dc.moveTo(cvGame.Width, 0);
+            dc.lineTo(0, cvGame.height);
+            dc.closePath();
+            dc.strokeStyle="#000000";
+            dc.stroke();
+        }
+
+        function gameloop() {
+            ++iTick;
+            //console.log(iTick); // step 20a. remove console.log's (this is just one of them)
+            update();
+            draw();
+            
+        }
+
+        // step 4, added start & stop game, reorganized code for setInterval
+        // step 8. create array, with objects, test object access, test looping
+        var thing_array;
+        var hero;
+
+        function draw_thing() {
+            dc = cvGame.getContext("2d");
+
+            dc.save();
+
+            dc.translate(this.x, this.y); // Step 6, figure out how transforms work--backwards! 1:23PM 7/12/13
+            dc.scale(this.scl, this.scl);
+            dc.rotate(Math.PI / 180 * this.rot);
+            dc.translate(-5, -5);
+
+            dc.beginPath();
+            dc.moveTo(0, 0);
+            dc.lineTo(10, 5);
+            dc.lineTo(0, 10);
+            dc.lineTo(5, 5);
+            dc.lineTo(0, 0);
+            dc.closePath();
+
+            dc.strokeStyle = "#000000";
+            dc.stroke();
+            dc.fillStyle = this.color;
+            dc.fill();
+
+            dc.restore();
+        }
+
+        function draw_spike() { //steps 27,28,29. Spike keydown, draw, & update code
+            dc = cvGame.getContext("2d");
+            dc.save();
+
+            dc.translate(this.x, this.y); // Step 6, figure out how transforms work--backwards! 1:23PM 7/12/13
+            dc.scale(this.scl, this.scl);
+            dc.rotate(Math.PI / 180 * this.rot);
+            dc.translate(-3.5, -3);
+
+            dc.beginPath();
+            dc.moveTo(0, 0);
+            dc.lineTo(7, 0);
+            dc.lineTo(7, 3);
+            dc.lineTo(0, 3);
+            dc.lineTo(0, 0);
+            dc.closePath();
+
+            dc.strokeStyle = this.color;
+            dc.stroke();
+            dc.fillStyle = "#ff7733";
+            dc.fill();
+
+            dc.restore();
+        }
+
+        function update_spike()
+        {
+            this.x += this.dx*this.spd;
+            this.y += this.dy*this.spd;
+            //if (this.x >= cvGame.Width  || this.x <= 0) this.dx = 0; //step 29.1 spike stop test
+            //if (this.y >= cvGame.Height || this.y <= 0) this.dy = 0;
+            if ((this.x >= cvGame.Width || this.x <= 0) // step 30. spike removal
+            || (this.y >= cvGame.Height || this.y <= 0)) {
+                var i = thing_array.indexOf(this);
+                thing_array.splice(i,1);
+                console.log("Removing spike: " + i);
+                return;
+            }
+            // step 31: spike collision
+            for (var t = 0; t < thing_array.length; t++) {
+                if (thing_array[t] != this && thing_array[t]!=hero) { // this will collide w/other spikes
+                    var minx, miny, maxx, maxy;
+                    minx = thing_array[t].x - 5; 
+                    maxx = thing_array[t].x + 5;
+                    miny = thing_array[t].y - 5;
+                    maxy = thing_array[t].y + 5;
+                    if (this.x >= minx && this.x <= maxx && this.y >= miny && this.y <= maxy) {
+                        thing_array[t].hit = true;
+                        var m = thing_array.indexOf(this); // Step 32. remove missile
+                        thing_array.splice(m,1);
+                        console.log("hit: " + t);
+                    }
+                }
+            }
+
+        }
+
+        function update_mons() {
+            if (this.hit == true) {
+                this.scl -= .2;
+                if (this.scl <= 0) {
+                    var m = thing_array.indexOf(this);
+                    thing_array.splice(m,1);
+                }
+            }
+            else if (hero != null) {
+                this.dx = hero.x - this.x;
+                this.dy = hero.y - this.y;
+                this.rot = Math.atan2(this.dy, this.dx) * 180 / Math.PI;
+                var n = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
+                this.dx = this.dx / n;
+                this.dy = this.dy / n;
+                this.x += this.dx;
+                this.y += this.dy;
+                if (n < (5 * this.scl)) { // Step 33. hack-hard coded collision detection
+                    stop_game();
+                }
+            }
+        }
+
+        function update_hero() { // step 22+23 added hero update and spd
+            if (tapx > 0 && tapy > 0) {
+                this.dx = tapx - this.x;
+                this.dy = tapy - this.y;
+                var len = Math.sqrt(this.dx * this.dx + this.dy * this.dy);
+                this.rot = Math.atan2(this.dy, this.dx) * 180 / Math.PI;
+                this.dx /= len;
+                this.dy /= len;
+                tapx = tapy = -1;
+            }
+            console.log("lastkey=" + lastkey);
+            if (lastkey != "") { // step 26. key handler for hero
+                if (lastkey == "d") {
+                    this.rot += 5;
+                }
+                else if (lastkey == "a") {
+                    this.rot -= 5;
+                }
+                else if (lastkey == "s") {
+                    this.dx = 0;
+                    this.dy = 0;
+                }
+                else if (lastkey == "w") {
+                    this.dx = Math.cos(Math.PI * this.rot / 180);
+                    this.dy = Math.sin(this.rot * Math.PI / 180);
+                }
+                else if (lastkey == "Spacebar") {
+                    var spike = new thing(this.x, this.y, this.color);
+                    spike.spd = 5;
+                    spike.rot = this.rot;
+                    spike.dx = Math.cos(spike.rot * Math.PI/180);
+                    spike.dy = Math.sin(spike.rot * Math.PI / 180);
+                    spike.draw   = draw_spike;
+                    spike.update = update_spike;
+                    thing_array.push(spike);
+                }
+            }
+            this.x += this.dx * this.spd;
+            this.y += this.dy * this.spd;
+            if (this.x >= cvGame.width) this.x = 0;
+            if (this.x <= 0) this.x = cvGame.width;
+            if (this.y >= cvGame.height) this.y = 0;
+            if (this.y <= 0) this.y = cvGame.height;
+        }
+
+        function thing(px, py, pcolor) {
+            this.dx = 0;
+            this.dy = 0;
+            this.x = px;
+            this.y = py;
+            this.hit = false;
+            this.rot = 0; // 15. added rot property and rot code in mons update
+            this.scl = 2; // 16. added scl and scale code in draw
+            this.spd = 1;
+            this.color = pcolor;
+            this.draw = draw_thing; // step 10--figured out how to methodize draw_ship
+            // step 12--unmethodized draw_ship for flexibility
+            // step 13--added update property and update functions for hero & mons (chase) & defauls
+            this.update = new function () { this.dx = 0; this.dy = 0; };
+            
+        }
+
+        // step 9. create rnd function and use random in thing creation
+        function rnd(min,max) {
+            return (Math.floor(Math.random() * (max - min + 1)) + min);
+        }
+
+        function mousehandler(event) {            
+            tapx = event.pageX - cvGame.offsetLeft; // step 21. found this snippet googling on an apple site
+            tapy = event.pageY - cvGame.offsetTop;
+            console.log("Mouse Event" + tapx + "," + tapy);
+        }
+        function firehandler(event) {
+            dtapx = event.pageX - cvGame.offsetLeft; // step 24. double taps
+            dtapy = event.pageY - cvGame.offsetTop;
+            console.log("Fire Event" + dtapx + "," + dtapy);
+        }
+
+        function keydownhandler(event) { // step 25. key handler
+            //console.log("On key down" + event.key);
+            lastkey = event.key;
+        }
+
+        function keyuphandler(event) { // step 25. key handler
+            //console.log("On key down" + event.key);
+            lastkey = "";
+        }
+
+        function start_game() {
+            cvGame.onmousedown = mousehandler; // step 20. mouse handler
+            cvGame.ondblclick = firehandler;
+            onkeydown = keydownhandler;
+            onkeyup = keyuphandler;// step 27. key up handler
+            var monscolor = "#ff0000";
+            hero = new thing(200, 100, "#0000ff");
+            hero.update = update_hero;
+            hero.scl = 2;
+            hero.spd = 4;
+
+            thing_array = new Array();
+            thing_array.push(hero);
+            // step 11: added variable color to things, loop for monsters 
+            for (var i = 0; i < 5; i++) {
+                var mons = new thing(rnd(0, cvGame.width), rnd(0, cvGame.height), monscolor);
+                mons.update = update_mons;
+                thing_array.push(mons);
+            }
+
+            if (idTimer != 0) clearInterval(idTimer);
+            init();
+            idTimer = setInterval(gameloop, 250);
+            btstart.disabled = true;
+            btstop.disabled= false;
+        }
+        function stop_game() {
+            if (idTimer != 0) clearInterval(idTimer);
+            btstop.disabled = true;
+            btstart.disabled = false;
+        }
+    </script>
+</head>
+<body onload="init();">
+    <input id="btstart" type="button" onclick="start_game();" value="Start Game" />
+    <input id="btstop" type="button" onclick="stop_game();" value="Stop Game" />
+    <input type=text id="txA" /><input type=button value="click me" onclick="doit();" />
+    <!-- step 5. fixed the width/height stretch problem using explicit attributes -->
+    <canvas id="cvGame" width="512" height="512" style="border-style:dotted;border-color:orange;border-width:2px;" />
+</body>
+</html>
